@@ -28,3 +28,18 @@ export const FREE_MODELS = [
   { id: "openai/gpt-oss-20b:free", label: "GPT-OSS 20B (fast)" },
   { id: "nex-agi/nex-n2-pro:free", label: "Nex N2 Pro" },
 ];
+
+// --- ElevenLabs text-to-speech ("Read aloud") ---
+// Same local-key pattern as the OpenRouter key above. Get a free key at
+// https://elevenlabs.io → Profile → API Keys, then add it to .env.local as:
+//   NEXT_PUBLIC_ELEVENLABS_API_KEY=...
+export const ELEVENLABS_API_KEY =
+  process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || "PASTE_YOUR_ELEVENLABS_KEY_HERE";
+
+// A deep, warm, calm narrator voice from ElevenLabs' standard library.
+// NOTE: We deliberately do NOT clone Morgan Freeman (or any real person) —
+// that violates ElevenLabs' policy and voice-likeness rights. This is a
+// soundalike-in-spirit storyteller voice. Swap the ID for any voice you have
+// the rights to use (browse at https://elevenlabs.io/app/voice-library).
+export const NARRATOR_VOICE_ID = "nPczCjzI2devNBz1zQrb"; // "Brian" — deep narrator
+export const NARRATOR_VOICE_NAME = "Deep Storyteller";

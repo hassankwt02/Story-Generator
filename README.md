@@ -11,7 +11,24 @@ an AI model through the **OpenRouter API**.
 - Enter the child's **name**, **age**, pick a **theme**
   (Fantasy 🧚 / Comedy 🤡 / Sci-Fi 🚀 / Spooky 👻), and describe **their day**.
 - Sends a request to OpenRouter and **streams the story back** live, word by word.
-- Default model: `meta-llama/llama-3.1-8b-instruct:free`.
+- Default model: `google/gemma-4-31b-it:free` (the assignment's
+  `llama-3.1-8b-instruct:free` was discontinued by OpenRouter).
+- 🔊 **Read aloud** — narrate the finished story with a deep, warm storyteller
+  voice via **ElevenLabs** (Extra Mile challenge).
+
+## 🔊 Read aloud (ElevenLabs) & a note on "Morgan Freeman's voice"
+
+The finished story can be narrated out loud. This uses the ElevenLabs
+text-to-speech API and needs a **separate** ElevenLabs key (same local-key
+pattern — add `NEXT_PUBLIC_ELEVENLABS_API_KEY` to `.env.local`).
+
+This started as a request for "Morgan Freeman's voice." We deliberately **do not**
+clone Morgan Freeman (or any real person): cloning an identifiable person's voice
+without consent violates ElevenLabs' terms and that person's voice-likeness
+rights. Instead we use a **deep, warm narrator voice from ElevenLabs' standard
+library** that evokes the same soothing bedtime-storyteller feel. The voice is
+configurable in `lib/config.ts` (`NARRATOR_VOICE_ID`) — swap in any voice you
+have the rights to use.
 
 ## Where the API key lives (read this!)
 
@@ -51,7 +68,8 @@ Open <http://localhost:3000>.
 1. Push this folder to GitHub.
 2. Import the repo at <https://vercel.com/new>.
 3. In **Project Settings → Environment Variables**, add
-   `NEXT_PUBLIC_OPENROUTER_API_KEY` = your key.
+   `NEXT_PUBLIC_OPENROUTER_API_KEY` = your key (and
+   `NEXT_PUBLIC_ELEVENLABS_API_KEY` if you want narration).
 4. Deploy.
 
 ## How the rubric is met
@@ -60,7 +78,7 @@ Open <http://localhost:3000>.
 | --- | --- |
 | Real OpenRouter request + displays response | `lib/openrouter.ts` (streaming) |
 | Key stored as a variable at top of file | `lib/config.ts` |
-| Required model `llama-3.1-8b-instruct:free` | `lib/config.ts` → `DEFAULT_MODEL` |
+| Required model (note: discontinued upstream) | `lib/config.ts` → `DEFAULT_MODEL` |
 | System prompt + personality ("Dreamweaver") | `lib/openrouter.ts` → `buildSystemPrompt` |
 | UI matches concept (title, inputs, output) | `app/page.tsx` |
 | Stage 3 — Loading state | streaming + "weaving…" indicator |
@@ -69,6 +87,7 @@ Open <http://localhost:3000>.
 | Stage 3 — Improve the UI | night-sky theme, glass cards |
 | Stage 3 — Creativity slider | temperature slider (0.0–1.0) |
 | Stage 3 — Model switcher | dropdown of free models |
+| Extra Mile — ElevenLabs voice output | `lib/elevenlabs.ts` + "Read aloud" button |
 
 ## Project layout
 

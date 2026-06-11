@@ -4,10 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import StarrySky from "@/components/StarrySky";
 import { THEMES, ThemeId } from "@/lib/themes";
 import { streamStory } from "@/lib/openrouter";
-import { OPENROUTER_API_KEY, DEFAULT_MODEL, FREE_MODELS } from "@/lib/config";
+import { synthesizeSpeech } from "@/lib/elevenlabs";
+import {
+  OPENROUTER_API_KEY,
+  DEFAULT_MODEL,
+  FREE_MODELS,
+  ELEVENLABS_API_KEY,
+  NARRATOR_VOICE_NAME,
+} from "@/lib/config";
 
 const KEY_MISSING =
   !OPENROUTER_API_KEY || OPENROUTER_API_KEY.includes("PASTE_YOUR");
+
+const VOICE_KEY_MISSING =
+  !ELEVENLABS_API_KEY || ELEVENLABS_API_KEY.includes("PASTE_YOUR");
 
 export default function Home() {
   const [childName, setChildName] = useState("");
@@ -23,8 +33,15 @@ export default function Home() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
+  // Read-aloud (text-to-speech) state.
+  const [narrating, setNarrating] = useState(false); // synthesising audio
+  const [playing, setPlaying] = useState(false); // audio currently playing
+  const [audioError, setAudioError] = useState("");
+
   const abortRef = useRef<AbortController | null>(null);
   const storyRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
 
   // Auto-scroll the story panel as new text streams in.
   useEffect(() => {
@@ -32,6 +49,62 @@ export default function Home() {
       storyRef.current.scrollTop = storyRef.current.scrollHeight;
     }
   }, [story, loading]);
+
+  // Tidy up any audio + object URL when the component unmounts.
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+    };
+  }, []);
+
+  function stopNarration() {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setPlaying(false);
+  }
+
+  async function handleReadAloud() {
+    setAudioError("");
+
+    // Toggle off if already playing.
+    if (playing) {
+      stopNarration();
+      return;
+    }
+    if (!story) return;
+
+    if (VOICE_KEY_MISSING) {
+      setAudioError(
+        "No ElevenLabs key found. Add NEXT_PUBLIC_ELEVENLABS_API_KEY to .env.local to enable narration."
+      );
+      return;
+    }
+
+    setNarrating(true);
+    try {
+      const blob = await synthesizeSpeech(story);
+
+      // Replace any previous audio/URL.
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+      const url = URL.createObjectURL(blob);
+      audioUrlRef.current = url;
+
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => setPlaying(false);
+      audio.onpause = () => setPlaying(false);
+
+      await audio.play();
+      setPlaying(true);
+    } catch (err) {
+      setAudioError((err as Error).message || "Couldn't narrate the story.");
+    } finally {
+      setNarrating(false);
+    }
+  }
 
   const canGenerate = childName.trim() !== "" && plot.trim() !== "" && !loading;
 
@@ -49,6 +122,8 @@ export default function Home() {
       return;
     }
 
+    stopNarration();
+    setAudioError("");
     setStory("");
     setLoading(true);
     const controller = new AbortController();
@@ -253,19 +328,39 @@ export default function Home() {
         {/* Story output */}
         {(story || loading) && (
           <section className="glass animate-fade-in mt-8 rounded-3xl p-6 shadow-2xl sm:p-8">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-starlight">
                 {childName ? `${childName}'s Bedtime Story` : "Bedtime Story"}
               </h2>
               {story && !loading && (
-                <button
-                  onClick={handleCopy}
-                  className="rounded-lg border border-starlight/15 px-3 py-1 text-xs text-starlight/70 transition hover:bg-night-800/60 hover:text-starlight"
-                >
-                  {copied ? "✓ Copied" : "Copy"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleReadAloud}
+                    disabled={narrating}
+                    title={`Narrated by the ${NARRATOR_VOICE_NAME} voice`}
+                    className="flex items-center gap-1.5 rounded-lg border border-starlight/15 px-3 py-1 text-xs text-starlight/70 transition hover:bg-night-800/60 hover:text-starlight disabled:opacity-50"
+                  >
+                    {narrating
+                      ? "🎙️ Narrating…"
+                      : playing
+                        ? "⏹ Stop"
+                        : "🔊 Read aloud"}
+                  </button>
+                  <button
+                    onClick={handleCopy}
+                    className="rounded-lg border border-starlight/15 px-3 py-1 text-xs text-starlight/70 transition hover:bg-night-800/60 hover:text-starlight"
+                  >
+                    {copied ? "✓ Copied" : "Copy"}
+                  </button>
+                </div>
               )}
             </div>
+
+            {audioError && (
+              <p className="mb-4 rounded-lg bg-red-500/15 px-4 py-2 text-sm text-red-200">
+                {audioError}
+              </p>
+            )}
             <div
               ref={storyRef}
               className="story-prose max-h-[60vh] overflow-y-auto whitespace-pre-wrap pr-2 font-serif text-[1.05rem] leading-relaxed text-starlight/90"
