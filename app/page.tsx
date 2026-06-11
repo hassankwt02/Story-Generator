@@ -5,19 +5,7 @@ import StarrySky from "@/components/StarrySky";
 import { THEMES, ThemeId } from "@/lib/themes";
 import { streamStory } from "@/lib/openrouter";
 import { synthesizeSpeech } from "@/lib/elevenlabs";
-import {
-  OPENROUTER_API_KEY,
-  DEFAULT_MODEL,
-  FREE_MODELS,
-  ELEVENLABS_API_KEY,
-  NARRATOR_VOICE_NAME,
-} from "@/lib/config";
-
-const KEY_MISSING =
-  !OPENROUTER_API_KEY || OPENROUTER_API_KEY.includes("PASTE_YOUR");
-
-const VOICE_KEY_MISSING =
-  !ELEVENLABS_API_KEY || ELEVENLABS_API_KEY.includes("PASTE_YOUR");
+import { DEFAULT_MODEL, FREE_MODELS, NARRATOR_VOICE_NAME } from "@/lib/config";
 
 export default function Home() {
   const [childName, setChildName] = useState("");
@@ -38,10 +26,25 @@ export default function Home() {
   const [playing, setPlaying] = useState(false); // audio currently playing
   const [audioError, setAudioError] = useState("");
 
+  // Whether the server has the keys configured (fetched from /api/status).
+  const [storyReady, setStoryReady] = useState(true); // assume ok to avoid banner flash
+  const [voiceReady, setVoiceReady] = useState(false);
+
   const abortRef = useRef<AbortController | null>(null);
   const storyRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
+
+  // Ask the server whether the API keys are configured (no keys are returned).
+  useEffect(() => {
+    fetch("/api/status")
+      .then((r) => r.json())
+      .then((s) => {
+        setStoryReady(!!s.storyReady);
+        setVoiceReady(!!s.voiceReady);
+      })
+      .catch(() => {});
+  }, []);
 
   // Auto-scroll the story panel as new text streams in.
   useEffect(() => {
@@ -76,9 +79,9 @@ export default function Home() {
     }
     if (!story) return;
 
-    if (VOICE_KEY_MISSING) {
+    if (!voiceReady) {
       setAudioError(
-        "No ElevenLabs key found. Add NEXT_PUBLIC_ELEVENLABS_API_KEY to .env.local to enable narration."
+        "Narration isn't available — the server has no ElevenLabs key configured."
       );
       return;
     }
@@ -111,12 +114,6 @@ export default function Home() {
   async function handleGenerate() {
     setError("");
 
-    if (KEY_MISSING) {
-      setError(
-        "No API key found. Open lib/config.ts and paste your OpenRouter key into OPENROUTER_API_KEY."
-      );
-      return;
-    }
     if (!childName.trim() || !plot.trim()) {
       setError("Please add your child's name and a few events from their day.");
       return;
@@ -173,13 +170,14 @@ export default function Home() {
           </p>
         </header>
 
-        {/* Key-missing banner */}
-        {KEY_MISSING && (
+        {/* Key-missing banner (driven by the server, no key exposed) */}
+        {!storyReady && (
           <div className="mb-6 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-            ⚠️ No API key set yet. Open{" "}
-            <code className="rounded bg-black/30 px-1">lib/config.ts</code> and
-            paste your OpenRouter key into{" "}
-            <code className="rounded bg-black/30 px-1">OPENROUTER_API_KEY</code>.
+            ⚠️ No API key set on the server yet. Add{" "}
+            <code className="rounded bg-black/30 px-1">OPENROUTER_API_KEY</code>{" "}
+            to <code className="rounded bg-black/30 px-1">.env.local</code> (no{" "}
+            <code className="rounded bg-black/30 px-1">NEXT_PUBLIC_</code> prefix)
+            and restart the dev server.
           </div>
         )}
 
@@ -334,18 +332,21 @@ export default function Home() {
               </h2>
               {story && !loading && (
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleReadAloud}
-                    disabled={narrating}
-                    title={`Narrated by the ${NARRATOR_VOICE_NAME} voice`}
-                    className="flex items-center gap-1.5 rounded-lg border border-starlight/15 px-3 py-1 text-xs text-starlight/70 transition hover:bg-night-800/60 hover:text-starlight disabled:opacity-50"
-                  >
-                    {narrating
-                      ? "🎙️ Narrating…"
-                      : playing
-                        ? "⏹ Stop"
-                        : "🔊 Read aloud"}
-                  </button>
+                  {/* Read-aloud only appears when the server has an ElevenLabs key. */}
+                  {voiceReady && (
+                    <button
+                      onClick={handleReadAloud}
+                      disabled={narrating}
+                      title={`Narrated by the ${NARRATOR_VOICE_NAME} voice`}
+                      className="flex items-center gap-1.5 rounded-lg border border-starlight/15 px-3 py-1 text-xs text-starlight/70 transition hover:bg-night-800/60 hover:text-starlight disabled:opacity-50"
+                    >
+                      {narrating
+                        ? "🎙️ Narrating…"
+                        : playing
+                          ? "⏹ Stop"
+                          : "🔊 Read aloud"}
+                    </button>
+                  )}
                   <button
                     onClick={handleCopy}
                     className="rounded-lg border border-starlight/15 px-3 py-1 text-xs text-starlight/70 transition hover:bg-night-800/60 hover:text-starlight"
