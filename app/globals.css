@@ -1,0 +1,189 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: radial-gradient(
+      ellipse at top,
+      #1b1f44 0%,
+      #0a0c1f 45%,
+      #05060f 100%
+    )
+    no-repeat;
+  background-attachment: fixed;
+  color: #e8ecff;
+}
+
+/* ---------- Starry sky ---------- */
+
+/* Individual stars that each glow slowly on their own timing.
+   Tight box-shadow keeps them as crisp points of light, not hazy blobs. */
+.glow-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 3px 0.5px currentColor;
+  animation-name: star-glow;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: opacity, transform;
+}
+
+@keyframes star-glow {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* Four-point "sparkle" feature stars built from two crossing light beams. */
+.sparkle {
+  position: absolute;
+  animation-name: sparkle-glow;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: opacity, transform;
+}
+.sparkle::before,
+.sparkle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.sparkle::before {
+  width: 1.5px;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    currentColor 50%,
+    transparent
+  );
+}
+.sparkle::after {
+  height: 1.5px;
+  width: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    currentColor 50%,
+    transparent
+  );
+}
+
+@keyframes sparkle-glow {
+  0%,
+  100% {
+    opacity: 0.1;
+    transform: scale(0.6) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(90deg);
+  }
+}
+
+/* The occasional slow shooting star with a glowing head and a fading tail. */
+.shooting {
+  position: absolute;
+  height: 2px;
+  width: 150px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(205, 214, 255, 0.9)
+  );
+  border-radius: 9999px;
+  filter: drop-shadow(0 0 6px rgba(205, 214, 255, 0.9));
+  opacity: 0;
+  animation-name: shooting;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+.shooting::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px 3px rgba(255, 255, 255, 0.9);
+}
+
+@keyframes shooting {
+  0% {
+    transform: rotate(18deg) translateX(0);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  22% {
+    opacity: 1;
+  }
+  34%,
+  100% {
+    transform: rotate(18deg) translateX(560px);
+    opacity: 0;
+  }
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .glow-star,
+  .sparkle,
+  .shooting {
+    animation: none;
+  }
+  .glow-star,
+  .sparkle {
+    opacity: 0.75;
+  }
+}
+
+/* Soft scrollbar to match the theme */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0c1f;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2f5e;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4080;
+}
+
+/* Glass card */
+.glass {
+  background: rgba(17, 20, 46, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(205, 214, 255, 0.12);
+}
+
+.story-prose p {
+  margin-bottom: 1.1rem;
+  line-height: 1.9;
+}
